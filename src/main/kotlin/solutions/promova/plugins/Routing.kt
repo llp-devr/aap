@@ -28,15 +28,15 @@ fun Application.configureRouting(version: String) {
     routing {
         route("/pjeOffice") {
             get("/requisicao/") {
-                val ipAddress = call.request.local.remoteHost.trim()
-                if (ipAddress != "localhost" && ipAddress != "127.0.0.1" && ipAddress != "::1") {
+                // Check for authorized IP addresses
+                if (call.request.local.remoteHost.trim() !in setOf("localhost", "127.0.0.1", "::1")) {
                     call.respond(HttpStatusCode.Unauthorized)
                     return@get
                 }
 
-                val originHeader = call.request.headers["Origin"]
-                if (!originHeader.isNullOrEmpty()) {
-                    call.response.header("Access-Control-Allow-Origin", originHeader)
+                // If Origin header is present, allow access
+                call.request.headers["Origin"]?.let {
+                    call.response.header("Access-Control-Allow-Origin", it)
                 }
 
                 val parameters = call.request.queryParameters
@@ -47,10 +47,6 @@ fun Application.configureRouting(version: String) {
                     ?: throw IllegalArgumentException("Missing u in query string")
 
                 val task = Task(Json.decodeFromString<Requisicao>(r), u)
-
-                print("\n")
-                print(task)
-                print("\n")
 
                 processTask(task)
 
